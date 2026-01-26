@@ -2,7 +2,7 @@
 
 A notepad app written in C#, free of AI features, markdown support, and Microsoft integration. 
 
-Self-contained exe is in the main directory.
+Self-contained exe is in the main directory, or build it yourself.
 
 ## Features
 - Write plain text
