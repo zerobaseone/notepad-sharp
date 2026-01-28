@@ -11,6 +11,8 @@ namespace notepadsharp
         private string currentFile = null;
         private bool isModified = false;
         private float currentZoom = 1.0f;
+        private Form activeFindDialog = null;
+
 
         public Notepad()
         {
@@ -30,7 +32,7 @@ namespace notepadsharp
             }
             catch
             {
-                // Icon not found, use default
+                // icon not found/use default
             }
 
             // Window setup
@@ -127,7 +129,7 @@ namespace notepadsharp
             
             var timeDateItem = new ToolStripMenuItem("Time/&Date", null, (s, e) => {
                 int pos = textBox.SelectionStart;
-                // change the date format if you live outside the US
+                // change the date format if you live outside the US :)
                 textBox.Text = textBox.Text.Insert(pos, DateTime.Now.ToString("h:mm tt M/d/yyyy"));
                 textBox.SelectionStart = pos + DateTime.Now.ToString("h:mm tt M/d/yyyy").Length;
             });
@@ -194,7 +196,7 @@ namespace notepadsharp
             if (result == DialogResult.Yes)
             {
                 OnSave(null, null);
-                return !isModified; // If still modified, save was cancelled
+                return !isModified; // if still modified, save was cancelled
             }
             else if (result == DialogResult.No)
             {
@@ -202,7 +204,7 @@ namespace notepadsharp
             }
             else
             {
-                return false; // Cancel
+                return false; // cancel
             }
         }
 
@@ -291,7 +293,6 @@ namespace notepadsharp
             }
         }
 
-        private Form activeFindDialog = null; // Add this as a class field at the top
 
 private void OnFind(object sender, EventArgs e)
 {
@@ -313,10 +314,10 @@ private void OnFind(object sender, EventArgs e)
         MaximizeBox = false,
         MinimizeBox = false,
         ShowInTaskbar = false,
-        Owner = this  // Make it owned by main window
+        Owner = this  // make it owned by main window
     };
 
-    // Position it in top-right corner of main window
+    // Position in top-right corner of main window
     findDialog.Location = new System.Drawing.Point(
         this.Location.X + this.Width - findDialog.Width - 20,
         this.Location.Y + 50
@@ -372,7 +373,7 @@ private void OnFind(object sender, EventArgs e)
 
     closeButton.Click += (s, ev) => findDialog.Close();
 
-    // Keep track of search state
+    // search state
     int lastSearchPos = 0;
     int currentMatchIndex = 0;
 
@@ -432,7 +433,7 @@ private void OnFind(object sender, EventArgs e)
             // Select and highlight the text
             textBox.Select(index, search.Length);
             textBox.ScrollToCaret();
-            textBox.Focus();  // This now works because dialog is modeless
+            textBox.Focus();
 
             // Update counter
             counterLabel.Text = $"Match {currentMatchIndex} of {totalMatches}";
@@ -478,7 +479,7 @@ private void OnFind(object sender, EventArgs e)
 
     activeFindDialog = findDialog;
     searchBox.Focus();
-    findDialog.Show();  // Changed from ShowDialog() to Show() - this makes it modeless!
+    findDialog.Show();  // fyi Show() makes it modeless vs ShowDialog()
 }
 
         private void OnPrint(object sender, EventArgs e)
