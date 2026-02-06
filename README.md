@@ -12,5 +12,5 @@ Self-contained exe is in the main directory, or build it yourself.
 - Zoom in/out
 - Choose font
 
-
-
+## TODO
+- better icon :)
