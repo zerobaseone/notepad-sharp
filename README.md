@@ -12,3 +12,4 @@ A notepad app written in C#, free of AI features, markdown support, and Microsof
 
 ## TODO
 - better icon :)
+- print handler fix for multi-page docs
