@@ -20,7 +20,8 @@ A simple notepad app written in C#, free of AI features and Microsoft integratio
 
 ## Building
 ``` dotnet build```
-Alternatively, download the .exe from the 'Releases' to the right
+
+Alternatively, download the .exe from the 'Releases' to the right.
 
 ## TODO
 - better icon :)
