@@ -14,6 +14,7 @@ A simple notepad app written in C#, free of AI features and Microsoft integratio
 ## Non-features
 - Does not format text
 - Does not spell check
+- Does not work with superlarge files (>1GB)
 - Does not connect to the internet
 - Does not have Copilot functionality
 - Does not have a remote code execution vulnerability
