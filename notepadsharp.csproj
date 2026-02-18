@@ -8,12 +8,4 @@
     <ApplicationIcon>sharp.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="Microsoft.VisualBasic" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="sharp.ico" />
-  </ItemGroup>
-
 </Project>

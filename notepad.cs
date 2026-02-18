@@ -11,29 +11,14 @@ namespace notepadsharp
         private string currentFile = null;
         private bool isModified = false;
         private float currentZoom = 1.0f;
+        private float baseFontSize = 10f;
         private Form activeFindDialog = null;
 
 
         public Notepad()
         {
 
-            // Load icon from embedded resource
-            try
-            {
-                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                var resourceName = "notepadsharp.sharp.ico"; 
-                using (var stream = assembly.GetManifestResourceStream(resourceName))
-                {
-                    if (stream != null)
-                    {
-                        this.Icon = new System.Drawing.Icon(stream);
-                    }
-                }
-            }
-            catch
-            {
-                // icon not found/use default
-            }
+            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             // Window setup
             this.Text = "Untitled - notepad#";
@@ -111,14 +96,10 @@ namespace notepadsharp
             editMenu.DropDownItems.Add(pasteItem);
             
             var deleteItem = new ToolStripMenuItem("De&lete", null, (s, e) => {
-                int start = textBox.SelectionStart;
-                int length = textBox.SelectionLength;
-                if (length > 0) {
-                    textBox.Text = textBox.Text.Remove(start, length);
-                    textBox.SelectionStart = start;
+                if (textBox.SelectionLength > 0) {
+                    textBox.SelectedText = "";
                 }
             });
-            deleteItem.ShortcutKeys = Keys.Delete;
             editMenu.DropDownItems.Add(deleteItem);
             
             editMenu.DropDownItems.Add(new ToolStripSeparator());
@@ -128,10 +109,11 @@ namespace notepadsharp
             editMenu.DropDownItems.Add(selectAllItem);
             
             var timeDateItem = new ToolStripMenuItem("Time/&Date", null, (s, e) => {
-                int pos = textBox.SelectionStart;
                 // change the date format if you live outside the US :)
-                textBox.Text = textBox.Text.Insert(pos, DateTime.Now.ToString("h:mm tt M/d/yyyy"));
-                textBox.SelectionStart = pos + DateTime.Now.ToString("h:mm tt M/d/yyyy").Length;
+                string timestamp = DateTime.Now.ToString("h:mm tt M/d/yyyy");
+                int pos = textBox.SelectionStart;
+                textBox.Text = textBox.Text.Insert(pos, timestamp);
+                textBox.SelectionStart = pos + timestamp.Length;
             });
             timeDateItem.ShortcutKeys = Keys.F5;
             editMenu.DropDownItems.Add(timeDateItem);
@@ -161,8 +143,7 @@ namespace notepadsharp
             viewMenu.DropDownItems.Add(zoomResetItem);
 
             // About menu
-            var aboutMenu = new ToolStripMenuItem("&About");
-            aboutMenu.DropDownItems.Add(new ToolStripMenuItem("&About notepad#", null, OnAbout));
+            var aboutMenu = new ToolStripMenuItem("&About", null, OnAbout);
 
             menuStrip.Items.Add(fileMenu);
             menuStrip.Items.Add(editMenu);
@@ -261,7 +242,7 @@ namespace notepadsharp
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Cannot save file:\n{ex.Message}", "Notepad",
+                    MessageBox.Show($"Cannot save file:\n{ex.Message}", "notepad#",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -294,202 +275,211 @@ namespace notepadsharp
         }
 
 
-private void OnFind(object sender, EventArgs e)
-{
-    // If dialog already open, just focus it
-    if (activeFindDialog != null && !activeFindDialog.IsDisposed)
-    {
-        activeFindDialog.Focus();
-        return;
-    }
-
-    // Create Find dialog
-    Form findDialog = new Form
-    {
-        Text = "Find",
-        Width = 400,
-        Height = 180,
-        FormBorderStyle = FormBorderStyle.FixedDialog,
-        StartPosition = FormStartPosition.Manual,
-        MaximizeBox = false,
-        MinimizeBox = false,
-        ShowInTaskbar = false,
-        Owner = this  // make it owned by main window
-    };
-
-    // Position in top-right corner of main window
-    findDialog.Location = new System.Drawing.Point(
-        this.Location.X + this.Width - findDialog.Width - 20,
-        this.Location.Y + 50
-    );
-
-    Label label = new Label
-    {
-        Text = "Find what:",
-        Left = 10,
-        Top = 15,
-        Width = 70
-    };
-
-    TextBox searchBox = new TextBox
-    {
-        Left = 85,
-        Top = 12,
-        Width = 280
-    };
-
-    CheckBox caseSensitiveBox = new CheckBox
-    {
-        Text = "Match case",
-        Left = 85,
-        Top = 45,
-        Width = 100
-    };
-
-    Label counterLabel = new Label
-    {
-        Text = "",
-        Left = 85,
-        Top = 70,
-        Width = 280,
-        ForeColor = System.Drawing.Color.Gray
-    };
-
-    Button findNextButton = new Button
-    {
-        Text = "Find Next",
-        Left = 200,
-        Top = 110,
-        Width = 80
-    };
-
-    Button closeButton = new Button
-    {
-        Text = "Close",
-        Left = 290,
-        Top = 110,
-        Width = 80
-    };
-
-    closeButton.Click += (s, ev) => findDialog.Close();
-
-    // search state
-    int lastSearchPos = 0;
-    int currentMatchIndex = 0;
-
-    // Helper to count total matches
-    int CountMatches(string text, string search, StringComparison comparison)
-    {
-        int count = 0;
-        int pos = 0;
-        while ((pos = text.IndexOf(search, pos, comparison)) != -1)
+        private void OnFind(object sender, EventArgs e)
         {
-            count++;
-            pos += search.Length;
+            // If dialog already open, just focus it
+            if (activeFindDialog != null && !activeFindDialog.IsDisposed)
+            {
+                activeFindDialog.Focus();
+                return;
+            }
+
+            // Create Find dialog
+            Form findDialog = new Form
+            {
+                Text = "Find",
+                Width = 400,
+                Height = 180,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.Manual,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                ShowInTaskbar = false,
+                Owner = this  // make it owned by main window
+            };
+
+            // Position in top-right corner of main window
+            findDialog.Location = new System.Drawing.Point(
+                this.Location.X + this.Width - findDialog.Width - 20,
+                this.Location.Y + 50
+            );
+
+            Label label = new Label
+            {
+                Text = "Find:",
+                Left = 10,
+                Top = 15,
+                Width = 70
+            };
+
+            TextBox searchBox = new TextBox
+            {
+                Left = 85,
+                Top = 12,
+                Width = 280
+            };
+
+            CheckBox caseSensitiveBox = new CheckBox
+            {
+                Text = "Match case",
+                Left = 85,
+                Top = 45,
+                Width = 100
+            };
+
+            Label counterLabel = new Label
+            {
+                Text = "",
+                Left = 85,
+                Top = 70,
+                Width = 280,
+                ForeColor = System.Drawing.Color.Gray
+            };
+
+            Button findNextButton = new Button
+            {
+                Text = "Find Next",
+                Left = 200,
+                Top = 110,
+                Width = 80
+            };
+
+            Button closeButton = new Button
+            {
+                Text = "Close",
+                Left = 290,
+                Top = 110,
+                Width = 80
+            };
+
+            closeButton.Click += (s, ev) => findDialog.Close();
+
+            // search state
+            int lastSearchPos = 0;
+            int currentMatchIndex = 0;
+
+            // Helper to count total matches
+            int CountMatches(string text, string search, StringComparison comparison)
+            {
+                int count = 0;
+                int pos = 0;
+                while ((pos = text.IndexOf(search, pos, comparison)) != -1)
+                {
+                    count++;
+                    pos += search.Length;
+                }
+                return count;
+            }
+
+            findNextButton.Click += (s, ev) =>
+            {
+                string search = searchBox.Text;
+                if (string.IsNullOrEmpty(search))
+                {
+                    counterLabel.Text = "";
+                    return;
+                }
+
+                StringComparison comparison = caseSensitiveBox.Checked 
+                    ? StringComparison.Ordinal 
+                    : StringComparison.OrdinalIgnoreCase;
+
+                // Count total matches
+                int totalMatches = CountMatches(textBox.Text, search, comparison);
+
+                if (totalMatches == 0)
+                {
+                    MessageBox.Show($"Cannot find \"{search}\"", "notepad#",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    counterLabel.Text = "No matches found";
+                    return;
+                }
+
+                // Search from last position
+                int index = textBox.Text.IndexOf(search, lastSearchPos, comparison);
+
+                // If not found, wrap around to beginning
+                if (index < 0 && lastSearchPos > 0)
+                {
+                    index = textBox.Text.IndexOf(search, 0, comparison);
+                    currentMatchIndex = 0;
+                }
+
+                if (index >= 0)
+                {
+                    // Calculate which match number this is
+                    currentMatchIndex++;
+                    if (currentMatchIndex > totalMatches) currentMatchIndex = 1;
+
+                    // Select and highlight the text
+                    textBox.Select(index, search.Length);
+                    textBox.ScrollToCaret();
+                    textBox.Focus();
+
+                    // Update counter
+                    counterLabel.Text = $"Match {currentMatchIndex} of {totalMatches}";
+
+                    lastSearchPos = index + search.Length;
+                }
+            };
+
+            // Reset search when text changes
+            searchBox.TextChanged += (s, ev) =>
+            {
+                lastSearchPos = 0;
+                currentMatchIndex = 0;
+                counterLabel.Text = "";
+            };
+
+            caseSensitiveBox.CheckedChanged += (s, ev) =>
+            {
+                lastSearchPos = 0;
+                currentMatchIndex = 0;
+                counterLabel.Text = "";
+            };
+
+            // Enter key = Find Next
+            searchBox.KeyDown += (s, ev) =>
+            {
+                if (ev.KeyCode == Keys.Enter)
+                {
+                    findNextButton.PerformClick();
+                    ev.Handled = true;
+                    ev.SuppressKeyPress = true;
+                }
+            };
+
+            findDialog.FormClosed += (s, ev) => activeFindDialog = null;
+
+            findDialog.Controls.Add(label);
+            findDialog.Controls.Add(searchBox);
+            findDialog.Controls.Add(caseSensitiveBox);
+            findDialog.Controls.Add(counterLabel);
+            findDialog.Controls.Add(findNextButton);
+            findDialog.Controls.Add(closeButton);
+
+            activeFindDialog = findDialog;
+            searchBox.Focus();
+            findDialog.Show();  // fyi Show() makes it modeless vs ShowDialog()
         }
-        return count;
-    }
-
-    findNextButton.Click += (s, ev) =>
-    {
-        string search = searchBox.Text;
-        if (string.IsNullOrEmpty(search))
-        {
-            counterLabel.Text = "";
-            return;
-        }
-
-        StringComparison comparison = caseSensitiveBox.Checked 
-            ? StringComparison.Ordinal 
-            : StringComparison.OrdinalIgnoreCase;
-
-        // Count total matches
-        int totalMatches = CountMatches(textBox.Text, search, comparison);
-
-        if (totalMatches == 0)
-        {
-            MessageBox.Show($"Cannot find \"{search}\"", "notepad#",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-            counterLabel.Text = "No matches found";
-            return;
-        }
-
-        // Search from last position
-        int index = textBox.Text.IndexOf(search, lastSearchPos, comparison);
-
-        // If not found, wrap around to beginning
-        if (index < 0 && lastSearchPos > 0)
-        {
-            index = textBox.Text.IndexOf(search, 0, comparison);
-            currentMatchIndex = 0;
-        }
-
-        if (index >= 0)
-        {
-            // Calculate which match number this is
-            currentMatchIndex++;
-            if (currentMatchIndex > totalMatches) currentMatchIndex = 1;
-
-            // Select and highlight the text
-            textBox.Select(index, search.Length);
-            textBox.ScrollToCaret();
-            textBox.Focus();
-
-            // Update counter
-            counterLabel.Text = $"Match {currentMatchIndex} of {totalMatches}";
-
-            lastSearchPos = index + search.Length;
-        }
-    };
-
-    // Reset search when text changes
-    searchBox.TextChanged += (s, ev) =>
-    {
-        lastSearchPos = 0;
-        currentMatchIndex = 0;
-        counterLabel.Text = "";
-    };
-
-    caseSensitiveBox.CheckedChanged += (s, ev) =>
-    {
-        lastSearchPos = 0;
-        currentMatchIndex = 0;
-        counterLabel.Text = "";
-    };
-
-    // Enter key = Find Next
-    searchBox.KeyDown += (s, ev) =>
-    {
-        if (ev.KeyCode == Keys.Enter)
-        {
-            findNextButton.PerformClick();
-            ev.Handled = true;
-            ev.SuppressKeyPress = true;
-        }
-    };
-
-    findDialog.FormClosed += (s, ev) => activeFindDialog = null;
-
-    findDialog.Controls.Add(label);
-    findDialog.Controls.Add(searchBox);
-    findDialog.Controls.Add(caseSensitiveBox);
-    findDialog.Controls.Add(counterLabel);
-    findDialog.Controls.Add(findNextButton);
-    findDialog.Controls.Add(closeButton);
-
-    activeFindDialog = findDialog;
-    searchBox.Focus();
-    findDialog.Show();  // fyi Show() makes it modeless vs ShowDialog()
-}
 
         private void OnPrint(object sender, EventArgs e)
         {
             try
             {
+                int charIndex = 0;
                 System.Drawing.Printing.PrintDocument printDoc = new System.Drawing.Printing.PrintDocument();
                 printDoc.PrintPage += (s, ev) =>
                 {
-                    ev.Graphics.DrawString(textBox.Text, textBox.Font, System.Drawing.Brushes.Black, ev.MarginBounds);
+                    int charsOnPage;
+                    int linesOnPage;
+                    string remaining = textBox.Text.Substring(charIndex);
+                    ev.Graphics.MeasureString(remaining, textBox.Font, ev.MarginBounds.Size,
+                        System.Drawing.StringFormat.GenericTypographic, out charsOnPage, out linesOnPage);
+                    ev.Graphics.DrawString(remaining, textBox.Font, System.Drawing.Brushes.Black,
+                        ev.MarginBounds, System.Drawing.StringFormat.GenericTypographic);
+                    charIndex += charsOnPage;
+                    ev.HasMorePages = charIndex < textBox.Text.Length;
                 };
 
                 System.Windows.Forms.PrintDialog printDialog = new System.Windows.Forms.PrintDialog();
@@ -515,7 +505,8 @@ private void OnFind(object sender, EventArgs e)
 
             if (fontDialog.ShowDialog() == DialogResult.OK)
             {
-                textBox.Font = fontDialog.Font;
+                baseFontSize = fontDialog.Font.Size;
+                textBox.Font = new System.Drawing.Font(fontDialog.Font.FontFamily, baseFontSize * currentZoom, fontDialog.Font.Style);
             }
         }
 
@@ -541,7 +532,6 @@ private void OnFind(object sender, EventArgs e)
 
         private void ApplyZoom()
         {
-            float baseFontSize = 10f;
             textBox.Font = new System.Drawing.Font(textBox.Font.FontFamily, baseFontSize * currentZoom, textBox.Font.Style);
         }
 
@@ -557,10 +547,10 @@ private void OnFind(object sender, EventArgs e)
         {
             MessageBox.Show(
                 "notepad#\n" +
-                "Version 1.0\n\n" +
+                "Version 1.0.2\n\n" +
                 "A barebones, no AI text editor.\n\n" +
-                "Created by adelon",
-                "about",
+                "Created by adelon @ adelon.studio",
+                "about notepad#",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information
             );
